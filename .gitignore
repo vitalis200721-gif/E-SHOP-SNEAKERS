@@ -71,6 +71,9 @@ Desktop.ini
 .npm/
 .yarn/
 
-# Cursor / Claude
+# Cursor / Claude / Agent tooling
 .cursor/
 .claude/
+.agents/
+.windsurf/
+skills-lock.json
