@@ -66,6 +66,8 @@ Desktop.ini
 *.tmp
 *.swp
 *~
+_commitmsg.txt
+_cleanup.js
 
 # Optional npm/yarn
 .npm/
