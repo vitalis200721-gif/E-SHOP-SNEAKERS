@@ -18,6 +18,8 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [requireEmailVerification, setRequireEmailVerification] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -54,6 +56,8 @@ export const AuthProvider = ({ children }) => {
         try {
           const cfg = await api.get('/auth/config');
           setGoogleEnabled(!!cfg.data.googleEnabled);
+          setEmailEnabled(!!cfg.data.emailEnabled);
+          setRequireEmailVerification(!!cfg.data.requireEmailVerification);
         } catch (_) {
           setGoogleEnabled(false);
         }
@@ -99,10 +103,42 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (name, email, password) => {
     const { data } = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data.user;
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+    }
+    return data;
+  }, []);
+
+  const forgotPassword = useCallback(async (email) => {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data;
+  }, []);
+
+  const resetPassword = useCallback(async (token, password) => {
+    const { data } = await api.post(`/auth/reset-password/${token}`, { password });
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+    }
+    return data;
+  }, []);
+
+  const verifyEmail = useCallback(async (token) => {
+    const { data } = await api.get(`/auth/verify-email/${token}`);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+    }
+    return data;
+  }, []);
+
+  const resendVerification = useCallback(async (email) => {
+    const { data } = await api.post('/auth/resend-verification', { email });
+    return data;
   }, []);
 
   const loginWithGoogle = useCallback(() => {
@@ -120,6 +156,21 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onLogout = (e) => {
+      setToken(null);
+      setUser(null);
+      const code = e.detail?.code;
+      if (code === 'TOKEN_EXPIRED') {
+        toast('Your session expired. Please sign in again.', 'info', 6000);
+        setAuthModalOpen(true);
+      }
+    };
+    window.addEventListener('auth:logout', onLogout);
+    return () => window.removeEventListener('auth:logout', onLogout);
+  }, [toast]);
+
   const openAuthModal = useCallback(() => setAuthModalOpen(true), []);
   const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
 
@@ -131,9 +182,15 @@ export const AuthProvider = ({ children }) => {
         isLoading,
         isAuthenticated: !!user,
         googleEnabled,
+        emailEnabled,
+        requireEmailVerification,
         login,
         register,
         loginWithGoogle,
+        forgotPassword,
+        resetPassword,
+        verifyEmail,
+        resendVerification,
         logout,
         authModalOpen,
         openAuthModal,

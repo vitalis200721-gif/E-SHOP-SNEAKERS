@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const User = require('../models/User');
 const { protect, adminOnly } = require('../middleware/auth');
+const { sendOrderShippedEmail } = require('../utils/email');
 
 const TAX_RATE = 0.0;
 const FREE_SHIPPING_THRESHOLD = 150;
@@ -166,9 +168,10 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
+    const wasShipped = order.status === 'shipped';
     order.status = status;
-    if (trackingNumber) order.trackingNumber = trackingNumber;
-    if (carrier) order.carrier = carrier;
+    if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+    if (carrier !== undefined) order.carrier = carrier;
 
     if (status === 'paid' && !order.isPaid) {
       order.isPaid = true;
@@ -179,6 +182,47 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
       order.deliveredAt = new Date();
     }
     const saved = await order.save();
+
+    if (status === 'shipped' && !wasShipped) {
+      try {
+        const user = await User.findById(order.user);
+        if (user?.email) {
+          sendOrderShippedEmail(user.email, user.name, saved).catch(() => {});
+        }
+      } catch (e) {
+        console.error('Shipped email error:', e.message);
+      }
+    }
+
+    res.json(saved);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put('/:id/ship', protect, adminOnly, async (req, res) => {
+  try {
+    const { trackingNumber, carrier } = req.body;
+    if (!trackingNumber || !carrier) {
+      return res.status(400).json({ message: 'Tracking number and carrier are required' });
+    }
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.status = 'shipped';
+    order.trackingNumber = trackingNumber;
+    order.carrier = carrier;
+    const saved = await order.save();
+
+    try {
+      const user = await User.findById(order.user);
+      if (user?.email) {
+        sendOrderShippedEmail(user.email, user.name, saved).catch(() => {});
+      }
+    } catch (e) {
+      console.error('Shipped email error:', e.message);
+    }
+
     res.json(saved);
   } catch (err) {
     res.status(500).json({ message: err.message });

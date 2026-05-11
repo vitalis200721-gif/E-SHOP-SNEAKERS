@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Edit3, Trash2, Search, X, Loader2, Package, ShieldAlert, Save } from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, X, Loader2, Package, ShieldAlert, Save, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
@@ -33,6 +33,9 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [tab, setTab] = useState('products');
+  const [shippingOrder, setShippingOrder] = useState(null);
+  const [shipForm, setShipForm] = useState({ trackingNumber: '', carrier: 'DHL Express' });
+  const [shipSaving, setShipSaving] = useState(false);
 
   const isAdmin = isAuthenticated && user?.role === 'admin';
 
@@ -129,12 +132,36 @@ export default function AdminPage() {
   };
 
   const handleOrderStatus = async (order, status) => {
+    if (status === 'shipped' && (!order.trackingNumber || !order.carrier)) {
+      setShippingOrder(order);
+      setShipForm({
+        trackingNumber: order.trackingNumber || '',
+        carrier: order.carrier || 'DHL Express',
+      });
+      return;
+    }
     try {
       const { data } = await api.put(`/orders/${order._id}/status`, { status });
-      setOrders((o) => o.map((x) => (x._id === order._id ? data : x)));
+      setOrders((o) => o.map((x) => (x._id === order._id ? { ...x, ...data, user: x.user } : x)));
       toast(`Order marked as ${status}.`, 'success');
     } catch (err) {
       toast(err.response?.data?.message || 'Update failed.', 'error');
+    }
+  };
+
+  const handleShip = async (e) => {
+    e.preventDefault();
+    if (!shipForm.trackingNumber.trim() || !shipForm.carrier.trim()) return;
+    setShipSaving(true);
+    try {
+      const { data } = await api.put(`/orders/${shippingOrder._id}/ship`, shipForm);
+      setOrders((o) => o.map((x) => (x._id === shippingOrder._id ? { ...x, ...data, user: x.user } : x)));
+      toast('Order shipped. Customer notified via email.', 'success');
+      setShippingOrder(null);
+    } catch (err) {
+      toast(err.response?.data?.message || 'Ship update failed.', 'error');
+    } finally {
+      setShipSaving(false);
     }
   };
 
@@ -303,15 +330,25 @@ export default function AdminPage() {
                           <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10">{o.status}</span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <select
-                            value={o.status}
-                            onChange={(e) => handleOrderStatus(o, e.target.value)}
-                            className="bg-black border border-white/10 rounded-lg px-3 py-2 text-xs font-bold uppercase"
-                          >
-                            {['pending', 'processing', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded'].map((s) => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
+                          <div className="flex justify-end gap-2 items-center">
+                            {o.isPaid && o.status !== 'shipped' && o.status !== 'delivered' && (
+                              <button
+                                onClick={() => { setShippingOrder(o); setShipForm({ trackingNumber: o.trackingNumber || '', carrier: o.carrier || 'DHL Express' }); }}
+                                className="px-3 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent hover:bg-accent hover:text-white transition-all text-xs font-black uppercase tracking-widest flex items-center gap-1"
+                              >
+                                <Truck size={14} /> Ship
+                              </button>
+                            )}
+                            <select
+                              value={o.status}
+                              onChange={(e) => handleOrderStatus(o, e.target.value)}
+                              className="bg-black border border-white/10 rounded-lg px-3 py-2 text-xs font-bold uppercase"
+                            >
+                              {['pending', 'processing', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded'].map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -329,6 +366,47 @@ export default function AdminPage() {
       </div>
 
       <AnimatePresence>
+        {shippingOrder && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShippingOrder(null)}
+            className="fixed inset-0 z-[2400] bg-black/85 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10"
+          >
+            <motion.form
+              initial={{ scale: 0.95, y: 30, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={handleShip}
+              className="relative w-full max-w-md bg-[#0d0d0d] border border-white/10 rounded-[2.5rem] p-8 md:p-10 space-y-5"
+            >
+              <button type="button" onClick={() => setShippingOrder(null)} className="absolute top-5 right-5 w-11 h-11 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-white/60 hover:text-white">
+                <X size={18} />
+              </button>
+              <div>
+                <div className="w-12 h-12 bg-accent/10 border border-accent/30 rounded-2xl flex items-center justify-center mb-4">
+                  <Truck size={20} className="text-accent" />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tighter">Mark as Shipped</h2>
+                <p className="text-white/40 text-sm mt-2">Order #{String(shippingOrder._id).slice(-8).toUpperCase()} · {shippingOrder.user?.email}</p>
+              </div>
+
+              <Input label="Carrier" value={shipForm.carrier} onChange={(v) => setShipForm({ ...shipForm, carrier: v })} required placeholder="DHL Express" />
+              <Input label="Tracking Number" value={shipForm.trackingNumber} onChange={(v) => setShipForm({ ...shipForm, trackingNumber: v })} required placeholder="e.g. JD0002342342" />
+
+              <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 text-xs text-white/60 leading-relaxed">
+                Customer will be notified by email when you confirm.
+              </div>
+
+              <button
+                type="submit" disabled={shipSaving}
+                className="w-full btn-premium bg-accent text-white hover:bg-white hover:text-black flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {shipSaving ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}
+                Confirm Shipment
+              </button>
+            </motion.form>
+          </motion.div>
+        )}
+
         {showForm && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

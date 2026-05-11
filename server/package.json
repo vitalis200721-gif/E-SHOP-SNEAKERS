@@ -25,6 +25,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "passport": "^0.6.0",
     "passport-google-oauth20": "^2.0.0",
+    "resend": "^6.12.3",
     "stripe": "^11.16.0"
   },
   "devDependencies": {

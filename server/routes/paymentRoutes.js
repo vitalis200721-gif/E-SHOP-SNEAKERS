@@ -3,7 +3,9 @@ const router = express.Router();
 const Stripe = require('stripe');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { sendOrderConfirmationEmail } = require('../utils/email');
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
@@ -67,6 +69,8 @@ router.post('/create-checkout-session', protect, ensureStripe, async (req, res) 
       cancel_url: `${process.env.CLIENT_URL}/cancel?order_id=${order._id}`,
     });
 
+    console.log(`[payment] created Stripe session ${session.id} for order ${order._id} (user ${req.user.email})`);
+
     order.paymentResult = {
       ...(order.paymentResult || {}),
       sessionId: session.id,
@@ -84,9 +88,19 @@ router.post('/create-checkout-session', protect, ensureStripe, async (req, res) 
 
 const handleCheckoutSucceeded = async (session) => {
   const orderId = session.metadata?.orderId || session.client_reference_id;
-  if (!orderId) return;
+  if (!orderId) {
+    console.warn('[payment] webhook missing orderId metadata, session:', session.id);
+    return;
+  }
   const order = await Order.findById(orderId);
-  if (!order || order.isPaid) return;
+  if (!order) {
+    console.warn(`[payment] webhook for unknown order ${orderId}`);
+    return;
+  }
+  if (order.isPaid) {
+    console.log(`[payment] order ${orderId} already paid — skipping duplicate`);
+    return;
+  }
 
   order.isPaid = true;
   order.paidAt = new Date();
@@ -99,7 +113,18 @@ const handleCheckoutSucceeded = async (session) => {
     email_address: session.customer_details?.email,
   };
   await order.save();
-  console.log(`Order ${orderId} marked as paid`);
+  console.log(
+    `[payment] ✓ order ${orderId} marked PAID — amount=$${(session.amount_total / 100).toFixed(2)} payment_intent=${session.payment_intent}`
+  );
+
+  try {
+    const user = await User.findById(order.user);
+    if (user?.email) {
+      sendOrderConfirmationEmail(user.email, user.name, order).catch(() => {});
+    }
+  } catch (e) {
+    console.error('[payment] order confirmation email error:', e.message);
+  }
 };
 
 router.post(
@@ -151,6 +176,34 @@ router.post(
     res.json({ received: true });
   }
 );
+
+router.get('/status', protect, async (req, res) => {
+  if (!stripe) {
+    return res.json({
+      stripeConfigured: false,
+      webhookConfigured: false,
+      mode: null,
+      accountId: null,
+    });
+  }
+  try {
+    const account = await stripe.accounts.retrieve();
+    res.json({
+      stripeConfigured: true,
+      webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+      mode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
+      accountId: account.id,
+      country: account.country,
+      defaultCurrency: account.default_currency,
+      payoutsEnabled: account.payouts_enabled,
+      chargesEnabled: account.charges_enabled,
+      detailsSubmitted: account.details_submitted,
+      email: account.email,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 router.get('/session/:id', protect, ensureStripe, async (req, res) => {
   try {

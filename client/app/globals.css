@@ -22,6 +22,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+input,
+textarea,
+select {
+  caret-color: var(--accent);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #000000 inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Custom Utilities (Replacement for failed @apply) */
 .btn-premium {
   position: relative;

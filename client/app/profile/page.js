@@ -559,6 +559,7 @@ function ProfileInner() {
                               className="h-full bg-accent rounded-full"
                             />
                           </div>
+                          <OrderTimeline order={selectedOrder} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
@@ -683,6 +684,42 @@ function Row({ label, value, bold }) {
     <div className="flex items-center justify-between">
       <span className={bold ? 'font-black text-lg' : 'text-white/50 text-sm'}>{label}</span>
       <span className={bold ? 'font-black text-2xl tracking-tighter' : 'font-black'}>{value}</span>
+    </div>
+  );
+}
+
+function OrderTimeline({ order }) {
+  const steps = [
+    { key: 'placed', label: 'Order Placed', date: order.createdAt, complete: true },
+    { key: 'paid', label: 'Payment Confirmed', date: order.paidAt, complete: order.isPaid },
+    {
+      key: 'shipped',
+      label: 'Shipped',
+      date: ['shipped', 'delivered'].includes(order.status) ? order.updatedAt : null,
+      complete: ['shipped', 'delivered'].includes(order.status),
+    },
+    {
+      key: 'delivered',
+      label: 'Delivered',
+      date: order.deliveredAt,
+      complete: order.status === 'delivered',
+    },
+  ];
+  return (
+    <div className="grid grid-cols-4 gap-2 mt-5">
+      {steps.map((step) => (
+        <div key={step.key}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${step.complete ? 'bg-accent border-accent text-white' : 'bg-black border-white/10 text-white/20'}`}>
+            {step.complete ? <Check size={14} /> : <Clock size={14} />}
+          </div>
+          <p className={`text-[10px] font-black uppercase tracking-widest mt-3 ${step.complete ? 'text-white' : 'text-white/25'}`}>
+            {step.label}
+          </p>
+          <p className="text-[11px] text-white/35 mt-1">
+            {step.date ? new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit' }).format(new Date(step.date)) : 'Pending'}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
