@@ -35,6 +35,7 @@ import api from '@/utils/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useCart } from '@/context/CartContext';
+import { OrderRowSkeleton } from '@/components/Skeleton';
 
 const STORAGE_KEYS = {
   profile: 'solevault_profile',
@@ -485,9 +486,10 @@ function ProfileInner() {
                     )}
 
                     {ordersLoading && orders.length === 0 ? (
-                      <div className="bg-[#0d0d0d] border border-white/10 rounded-3xl p-10 text-center">
-                        <Loader2 className="animate-spin text-accent mx-auto" size={28} />
-                        <p className="text-white/40 mt-4 text-sm">Loading orders…</p>
+                      <div className="space-y-3 md:space-y-4">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <OrderRowSkeleton key={i} />
+                        ))}
                       </div>
                     ) : orders.length === 0 ? (
                       <div className="bg-[#0d0d0d] border border-white/10 rounded-3xl p-10 text-center">

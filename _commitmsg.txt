@@ -1,0 +1,51 @@
+refactor(ui): mobile responsive polish, skeleton loaders, dark theme harmony
+
+Components
+- Add reusable Skeleton primitives: ProductCardSkeleton, ProductDetailSkeleton, OrderRowSkeleton, TextSkeleton
+- Add shimmer keyframe and pb-safe / no-scrollbar utilities to globals.css
+
+Home
+- Mobile-first responsive paddings, banner heights, typography (text-5xl..md:text-8xl etc)
+- Product grids show ProductCardSkeleton while loading instead of empty space
+- Hero banner: responsive button sizes, ticker font, text wrap on mobile
+
+Shop
+- Mobile filter drawer with active-count badge; desktop sidebar unchanged
+- Empty state with PackageX icon and Clear Filters CTA
+- Skeleton grid replaces plain pulse blocks; pagination hides when only 1 page
+- Responsive header, sort select and pagination controls
+
+Product detail
+- Replace plain-text loader with ProductDetailSkeleton
+- Replace alert() size warning with toast (info/error/success)
+- Sticky mobile bottom add-to-cart bar with price, size hint and CTA
+- Mobile horizontal thumbnail strip, sold-out / "only N left" labeling
+- Render recommendations section (was fetched but never displayed)
+- Native share / clipboard copy fallback
+
+Cart
+- Loading skeleton instead of "Accessing Vault..." text
+- Mobile layout: smaller images, flex-wrap header, tighter paddings
+- aria-labels on qty buttons
+
+Checkout
+- Migrate from light premium theme to consistent dark theme
+- Spinner icon on Pay Now button
+- Pre-fill name/email from auth user
+- Empty-cart guard renders empty state with CTA
+- Back to Bag link, mobile responsive grid and inputs
+
+Success / Cancel
+- Dark theme to match the rest of the site
+- Mobile responsive paddings and typography
+- Suspense fallback uses spinner instead of plain text
+
+Navbar
+- Smaller logo and spacing on mobile, larger touch targets
+- Mobile menu adds Cart / Profile entries, safer text sizes
+
+Profile
+- Orders loading state now uses OrderRowSkeleton list
+
+ProductCard
+- Responsive radii, badges, info padding and price typography

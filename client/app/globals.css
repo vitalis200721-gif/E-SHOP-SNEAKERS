@@ -72,6 +72,18 @@ textarea:-webkit-autofill:focus {
   100% { background-position: -200% 0; }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Hide native scrollbar where needed */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Safe-area padding for sticky mobile bars */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
 /* 3D Container Fix */
 .perspective-container {
   perspective: 2000px;

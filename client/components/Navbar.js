@@ -40,12 +40,12 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isScrolled ? 'py-4' : 'py-10'}`}>
-        <div className="max-w-[1440px] mx-auto px-8">
-          <div className={`bg-black/60 backdrop-blur-2xl rounded-[2rem] border border-white/10 px-10 py-5 flex items-center justify-between transition-all ${isScrolled ? 'shadow-2xl shadow-accent/10' : 'shadow-none'}`}>
+      <nav className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isScrolled ? 'py-3 md:py-4' : 'py-5 md:py-10'}`}>
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8">
+          <div className={`bg-black/60 backdrop-blur-2xl rounded-2xl md:rounded-[2rem] border border-white/10 px-5 md:px-10 py-4 md:py-5 flex items-center justify-between transition-all ${isScrolled ? 'shadow-2xl shadow-accent/10' : 'shadow-none'}`}>
 
             {/* Logo */}
-            <Link href="/" className="text-3xl font-black tracking-tighter uppercase group text-white">
+            <Link href="/" className="text-xl md:text-3xl font-black tracking-tighter uppercase group text-white">
               SOLE<span className="text-accent group-hover:text-white transition-colors">VAULT</span>
             </Link>
 
@@ -59,15 +59,15 @@ const Navbar = () => {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-6 text-white">
-              <button className="hover:text-accent transition-colors"><Search size={20} /></button>
+            <div className="flex items-center gap-4 md:gap-6 text-white">
+              <button className="hidden sm:block hover:text-accent transition-colors" aria-label="Search"><Search size={20} /></button>
 
-              <Link href="/cart" className="relative group">
+              <Link href="/cart" className="relative group" aria-label="Cart">
                 <ShoppingBag size={20} className="group-hover:text-accent transition-all" />
                 {cartCount > 0 && (
                   <motion.span
                     initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="absolute -top-3 -right-3 bg-accent text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-black shadow-xl"
+                    className="absolute -top-2.5 -right-2.5 md:-top-3 md:-right-3 bg-accent text-white text-[10px] font-black w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center border-2 border-black shadow-xl"
                   >
                     {cartCount}
                   </motion.span>
@@ -163,26 +163,34 @@ const Navbar = () => {
         {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-[200] bg-black p-12 flex flex-col"
+            className="fixed inset-0 z-[200] bg-black p-6 md:p-12 flex flex-col overflow-y-auto"
           >
-            <div className="flex justify-between items-center mb-20">
-              <span className="text-2xl font-black text-white">MENU</span>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center">
-                <X size={24} />
+            <div className="flex justify-between items-center mb-12 md:mb-20">
+              <span className="text-xl md:text-2xl font-black text-white tracking-tighter">MENU</span>
+              <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="w-11 h-11 md:w-12 md:h-12 bg-white/10 text-white rounded-full flex items-center justify-center">
+                <X size={22} />
               </button>
             </div>
-            <div className="space-y-10 flex-1">
+            <div className="space-y-6 md:space-y-10 flex-1">
               {['Shop', 'New Arrivals', 'Brands', 'Sale'].map((link) => (
-                <Link key={link} href={`/${link.toLowerCase().replace(' ', '-')}`} onClick={() => setIsMobileMenuOpen(false)} className="block text-5xl font-black text-white hover:text-accent uppercase tracking-tighter">
+                <Link key={link} href={`/${link.toLowerCase().replace(' ', '-')}`} onClick={() => setIsMobileMenuOpen(false)} className="block text-3xl sm:text-4xl md:text-5xl font-black text-white hover:text-accent uppercase tracking-tighter">
                   {link}
                 </Link>
               ))}
+              <Link href="/cart" onClick={() => setIsMobileMenuOpen(false)} className="block text-3xl sm:text-4xl md:text-5xl font-black text-white/60 hover:text-accent uppercase tracking-tighter">
+                Cart {cartCount > 0 && <span className="text-base text-accent">({cartCount})</span>}
+              </Link>
+              {isAuthenticated && (
+                <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="block text-3xl sm:text-4xl md:text-5xl font-black text-white/60 hover:text-accent uppercase tracking-tighter">
+                  Profile
+                </Link>
+              )}
             </div>
-            <div className="pt-8 border-t border-white/10">
+            <div className="pt-6 md:pt-8 border-t border-white/10">
               {isAuthenticated ? (
-                <div className="space-y-4">
-                  <p className="text-white/40 text-xs uppercase tracking-widest">Signed in as</p>
-                  <p className="text-white font-bold">{user?.name}</p>
+                <div className="space-y-3 md:space-y-4">
+                  <p className="text-white/40 text-[10px] md:text-xs uppercase tracking-widest">Signed in as</p>
+                  <p className="text-white font-bold truncate">{user?.name}</p>
                   <button
                     onClick={() => { logout(); setIsMobileMenuOpen(false); }}
                     className="text-red-400 text-sm font-black uppercase tracking-widest"
@@ -193,7 +201,7 @@ const Navbar = () => {
               ) : (
                 <button
                   onClick={() => { setIsMobileMenuOpen(false); openAuthModal(); }}
-                  className="w-full btn-premium py-6 bg-white text-black"
+                  className="w-full btn-premium py-5 md:py-6 bg-white text-black hover:bg-accent hover:text-white"
                 >
                   Sign In / Create Account
                 </button>
